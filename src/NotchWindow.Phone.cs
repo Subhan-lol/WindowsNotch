@@ -14,7 +14,7 @@ namespace NotchIsland
         void WirePhone()
         {
             phone = new PhoneLink(Dispatcher, shelf);
-            phone.Received += OnPhoneFile;
+            phone.Received += p => E<TextBlock>("PhoneStatus").Text = "Got " + System.IO.Path.GetFileName(p) + " ✓";
             phone.PhoneSeen += () =>
             {
                 E<TextBlock>("PhoneStatus").Text = "iPhone connected ✓  Pick files on your phone.";
@@ -29,6 +29,7 @@ namespace NotchIsland
                 UpdatePhonePanel();
                 E<TextBlock>("PhoneStatus").Text = "New key made. Old QR codes and home-screen icons stop working.";
             };
+            WireDelivery();
             if (Settings.Get("PhoneDrop") && SnapshotDir == null) StartPhone();
         }
 

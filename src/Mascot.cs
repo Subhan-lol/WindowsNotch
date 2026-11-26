@@ -11,7 +11,7 @@ namespace NotchIsland
 {
     public enum Mood { Idle, Happy, Vibing, Sleepy, Hungry, Focus, Worried, Excited }
     public enum Prop { None, Headphones, PartyHat, Nightcap, Glasses, Headband, Pencil, Wrench, Camera, Paper, Folder,
-                       Wand, Book, Ukulele, Snack, Boba, Rod, WateringCan, Balloon }
+                       Wand, Book, Ukulele, Snack, Boba, Rod, WateringCan, Balloon, Parcel, Cap }
 
     /// <summary>
     /// Mochi — a round little cream cat-blob with big shiny eyes, ears, tiny arms, feet and a tail.

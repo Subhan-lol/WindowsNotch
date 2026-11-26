@@ -184,6 +184,16 @@ namespace NotchIsland
             for (int i = 2; ; i++) { var p = System.IO.Path.Combine(dir, name + " (" + i + ")" + ext); if (!File.Exists(p)) return p; }
         }
 
+        /// <summary>Thumbnail for any path, computed off the UI thread, delivered on it.</summary>
+        public void ThumbAsync(string path, Action<BitmapSource> done)
+        {
+            worker.Post(() =>
+            {
+                var bmp = Thumbs.Get(path, 96);
+                ui.BeginInvoke(new Action(() => done(bmp)));
+            });
+        }
+
         // ---- thumbnails on a background STA thread ----
         void LoadThumb(ShelfItem item)
         {

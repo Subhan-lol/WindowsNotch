@@ -45,6 +45,19 @@ namespace NotchIsland
             }
         }
 
+        static Action balloonClick;
+
+        /// <summary>A Windows notification from the tray icon, for when the notch itself is hidden.</summary>
+        public static void Notify(string title, string text, Action onClick)
+        {
+            if (tray == null) return;
+            balloonClick = onClick;
+            tray.BalloonTipTitle = title;
+            tray.BalloonTipText = text;
+            tray.BalloonTipIcon = WinForms.ToolTipIcon.None;
+            tray.ShowBalloonTip(5000);
+        }
+
         static void CreateTray(NotchWindow win)
         {
             tray = new WinForms.NotifyIcon { Text = "Notch Island", Visible = true };
@@ -73,6 +86,7 @@ namespace NotchIsland
             menu.Items.Add("Quit", null, (s, e) => win.Quit());
             tray.ContextMenuStrip = menu;
             tray.MouseClick += (s, e) => { if (e.Button == WinForms.MouseButtons.Left) win.OpenFromTray(); };
+            tray.BalloonTipClicked += (s, e) => { var a = balloonClick; balloonClick = null; if (a != null) a(); };
         }
 
         public static void SetStartup(bool on)

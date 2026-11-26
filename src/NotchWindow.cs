@@ -13,7 +13,7 @@ using System.Windows.Threading;
 
 namespace NotchIsland
 {
-    enum ToastKind { None, Volume, Battery, Track, Info }
+    enum ToastKind { None, Volume, Battery, Track, Info, Delivery }
 
     /// <summary>
     /// The notch itself. One fixed-size transparent, click-through window pinned to the top of the primary screen;
@@ -82,7 +82,13 @@ namespace NotchIsland
 
             hoverTimer = Timer(170, (s, e) => { hoverTimer.Stop(); if (hovering && !expanded) Expand(null); });
             collapseTimer = Timer(380, (s, e) => { collapseTimer.Stop(); if (CanCollapse()) Collapse(); else if (expanded && !CursorOverNotch() && !pinnedOpen) collapseTimer.Start(); });
-            toastTimer = Timer(1600, (s, e) => { toastTimer.Stop(); toast = ToastKind.None; ApplyCompact(); });
+            toastTimer = Timer(1600, (s, e) =>
+            {
+                toastTimer.Stop();
+                // the delivery card stays while files are still coming in, or while you're looking at it
+                if (toast == ToastKind.Delivery && (hovering || ActiveCount > 0)) { toastTimer.Interval = TimeSpan.FromMilliseconds(1500); toastTimer.Start(); return; }
+                toast = ToastKind.None; ApplyCompact();
+            });
             fsTimer = Timer(1500, (s, e) => CheckFullscreen());
             idleTimer = Timer(15000, (s, e) => UpdateMood());
             trimTimer = Timer(20000, (s, e) => { trimTimer.Stop(); TrimMemory(); });
@@ -337,6 +343,14 @@ namespace NotchIsland
         void Expand(string tabName)
         {
             Dbg("expand " + tabName);
+            if (!expanded && (toast == ToastKind.Delivery || newFromPhone > 0) && tabName == null) tabName = "shelf";
+            if (!expanded && toast == ToastKind.Delivery && deliveryCard != null)
+            {
+                deliveryCard.Visibility = Visibility.Collapsed; deliveryCard.Opacity = 0;
+                EndDeliveryCard();
+                if (ActiveCount > 0 && !buddyOut) big.SetCarrying(true);
+            }
+            newFromPhone = 0;
             if (tabName != null) SelectTab(tabName);
             if (expanded) return;
             PropsForTab(tab);
@@ -422,15 +436,17 @@ namespace NotchIsland
                 case ToastKind.Battery: w = 300; return;
                 case ToastKind.Track: w = 380; h = 38; r = 16; return;
                 case ToastKind.Info: w = 340; h = 38; r = 16; return;
+                case ToastKind.Delivery: w = 420; h = 96; r = 28; return;
             }
             if (timerRunning) { w = 268; return; }
             if (media.IsPlaying && media.HasTrack) { w = 296; return; }
-            w = buddyOut ? 150 : 176;
+            w = newFromPhone > 0 ? 236 : buddyOut ? 150 : 176;
         }
 
         void ShowToast(ToastKind k, int ms, string title, string sub, string glyph)
         {
             if (expanded || !IsVisible) return;
+            if (toast == ToastKind.Delivery && k != ToastKind.Delivery) return; // deliveries win over volume/track pop-ups
             toast = k; toastTitle = title ?? ""; toastSub = sub ?? ""; toastGlyph = glyph ?? "";
             toastTimer.Stop();
             toastTimer.Interval = TimeSpan.FromMilliseconds(ms);
@@ -442,6 +458,22 @@ namespace NotchIsland
 
         void ApplyCompact(IEasingFunction ease, double ms)
         {
+            if (deliveryCard != null)
+            {
+                bool del = toast == ToastKind.Delivery && !expanded;
+                if (del && deliveryCard.Visibility != Visibility.Visible)
+                {
+                    deliveryCard.Visibility = Visibility.Visible;
+                    Anim.To(deliveryCard, UIElement.OpacityProperty, 1, 220, Anim.OutCubic, 140);
+                    Anim.To(compact, UIElement.OpacityProperty, 0, 100);
+                }
+                else if (!del && deliveryCard.Visibility == Visibility.Visible)
+                {
+                    Anim.To(deliveryCard, UIElement.OpacityProperty, 0, 140, null, 0, 0, (s, e) => { if (toast != ToastKind.Delivery) deliveryCard.Visibility = Visibility.Collapsed; });
+                    EndDeliveryCard();
+                    if (!expanded) Anim.To(compact, UIElement.OpacityProperty, 1, 200, Anim.OutCubic, 120);
+                }
+            }
             var cArt = E<Border>("CArt"); var cIcon = E<TextBlock>("CIcon"); var cRing = E<Grid>("CRing");
             var cText = E<StackPanel>("CText"); var cEq = E<StackPanel>("CEq"); var cBar = E<Grid>("CBar");
             var cRightText = E<TextBlock>("CRightText");
@@ -490,6 +522,12 @@ namespace NotchIsland
                         if (media.Art != null) { cArt.Visibility = V; E<ImageBrush>("CArtBrush").ImageSource = media.Art; }
                         else { cIcon.Text = ""; cIcon.Visibility = V; }
                         cEq.Visibility = V;
+                    }
+                    else if (newFromPhone > 0)
+                    {
+                        // a little reminder that something arrived while you weren't looking
+                        cIcon.Text = ""; cIcon.Foreground = (Brush)root.Resources["Accent"]; cIcon.Visibility = V;
+                        cRightText.Text = newFromPhone + " new"; cRightText.Visibility = V;
                     }
                     break;
             }

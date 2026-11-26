@@ -46,6 +46,28 @@ namespace NotchIsland
                     await Shot("20-shelf-toolbar", 300);
                     Application.Current.Shutdown(); return;
                 }
+                if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "delivery")
+                {
+                    shelf.ReadOnly = true;
+                    mini.Active = true;
+                    var art = FakeArt();
+                    string photo = System.IO.Path.Combine(SnapshotDir, "IMG_0042.png");
+                    var penc = new PngBitmapEncoder(); penc.Frames.Add(BitmapFrame.Create(art));
+                    using (var fs = File.Create(photo)) penc.Save(fs);
+                    long total = 6291456;
+                    OnUploadStarted(1, "IMG_0042.png", total);
+                    await Task.Delay(700);
+                    OnUploadProgress(1, 2700000);
+                    await Shot("21-receiving", 500);
+                    OnUploadProgress(1, total);
+                    shelf.Add(new[] { photo });
+                    OnUploadFinished(1, photo, true);
+                    await Shot("22-unpacking", 330);
+                    await Shot("23-delivered", 1100);
+                    toastTimer.Stop(); toast = ToastKind.None; ApplyCompact();
+                    await Shot("24-new-badge", 900);
+                    Application.Current.Shutdown(); return;
+                }
                 if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "phonetest")
                 {
                     shelf.ReadOnly = true;
@@ -54,6 +76,15 @@ namespace NotchIsland
                     if (!StartPhone()) { File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "url.txt"), "FAILED"); Application.Current.Shutdown(); return; }
                     var got = new System.Text.StringBuilder();
                     phone.Received += p => got.AppendLine("received " + System.IO.Path.GetFileName(p) + " pocket=" + shelf.Items.Count);
+                    int progressEvents = 0;
+                    bool shot = false;
+                    phone.UploadStarted += (id, n, t) => got.AppendLine("started #" + id + " " + n + " total=" + t);
+                    phone.UploadProgress += async (id, b) =>
+                    {
+                        progressEvents++;
+                        if (!shot && b > 2000000) { shot = true; got.AppendLine("card visible=" + (deliveryCard.Visibility == Visibility.Visible) + " meta='" + E<TextBlock>("DelMeta").Text + "'"); await Shot("25-live-receiving", 50); }
+                    };
+                    phone.UploadFinished += (id, p, ok) => got.AppendLine("finished #" + id + " ok=" + ok + " progressEvents=" + progressEvents + " title='" + E<TextBlock>("DelTitle").Text + "'");
                     File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "url.txt"), phone.Url);
                     await Task.Delay(20000);
                     File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "events.txt"), got.ToString());

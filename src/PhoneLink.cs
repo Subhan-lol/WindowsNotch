@@ -38,6 +38,13 @@ namespace NotchIsland
         public event Action<string> Received;
         /// <summary>Raised on the UI thread when a phone opens the page.</summary>
         public event Action PhoneSeen;
+        /// <summary>UI thread: (id, file name, total bytes or -1 if unknown).</summary>
+        public event Action<int, string, long> UploadStarted;
+        /// <summary>UI thread, ~10x a second: (id, bytes received so far).</summary>
+        public event Action<int, long> UploadProgress;
+        /// <summary>UI thread: (id, saved path or file name, success).</summary>
+        public event Action<int, string, bool> UploadFinished;
+        static int nextUploadId;
 
         public PhoneLink(Dispatcher d, ShelfStore s)
         {
@@ -226,6 +233,19 @@ namespace NotchIsland
             string file = CleanName(name);
             string path = Unique(Path.Combine(InboxDir, file));
             string tmp = path + ".part";
+            int id = Interlocked.Increment(ref nextUploadId);
+            long total = chunked ? -1 : length;
+            ui.BeginInvoke(new Action(() => { var h = UploadStarted; if (h != null) h(id, Path.GetFileName(path), total); }));
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            long received = 0, lastReport = 0;
+            Action<long> progress = n =>
+            {
+                received += n;
+                if (clock.ElapsedMilliseconds - lastReport < 100) return;
+                lastReport = clock.ElapsedMilliseconds;
+                long r = received;
+                ui.BeginInvoke(new Action(() => { var h = UploadProgress; if (h != null) h(id, r); }));
+            };
             try
             {
                 using (var fs = File.Create(tmp))
@@ -238,17 +258,18 @@ namespace NotchIsland
                             int semi = sizeLine.IndexOf(';'); if (semi >= 0) sizeLine = sizeLine.Substring(0, semi);
                             long chunk = Convert.ToInt64(sizeLine.Trim(), 16);
                             if (chunk == 0) { ReadLine(s); break; }
-                            CopyExactly(s, fs, chunk);
+                            CopyExactly(s, fs, chunk, progress);
                             ReadLine(s);
                         }
                     }
-                    else CopyExactly(s, fs, length);
+                    else CopyExactly(s, fs, length, progress);
                 }
                 File.Move(tmp, path);
             }
             catch
             {
                 try { File.Delete(tmp); } catch { }
+                ui.BeginInvoke(new Action(() => { var h = UploadFinished; if (h != null) h(id, Path.GetFileName(path), false); }));
                 try { Send(s, 400, "text/plain", Encoding.UTF8.GetBytes("Upload failed")); } catch { }
                 return;
             }
@@ -256,11 +277,12 @@ namespace NotchIsland
             {
                 shelf.Add(new[] { path });
                 var h = Received; if (h != null) h(path);
+                var f = UploadFinished; if (f != null) f(id, path, true);
             }));
             Send(s, 200, "application/json", Encoding.UTF8.GetBytes("{\"ok\":true,\"name\":\"" + Json(Path.GetFileName(path)) + "\"}"));
         }
 
-        static void CopyExactly(Stream from, Stream to, long count)
+        static void CopyExactly(Stream from, Stream to, long count, Action<long> progress)
         {
             var buf = new byte[81920];
             while (count > 0)
@@ -269,6 +291,7 @@ namespace NotchIsland
                 if (n <= 0) throw new IOException("Connection dropped");
                 to.Write(buf, 0, n);
                 count -= n;
+                if (progress != null) progress(n);
             }
         }
 

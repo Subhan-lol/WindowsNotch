@@ -76,11 +76,24 @@ namespace NotchIsland
             bal.Children.Add(P("M78,8.5 L82,8.5 L80,5.5 Z", B("#FF6F91")));
             AddProp(Prop.Balloon, bal);
 
+            // delivery parcel (two paws) and a little courier cap
+            var parcel = new Canvas { RenderTransform = Place(0, 36, 63) };
+            parcel.Children.Add(At(new Rectangle { Width = 28, Height = 22, RadiusX = 2.5, RadiusY = 2.5, Fill = B("#D9A066"), Stroke = B("#B07A45"), StrokeThickness = 1.2 }, 0, 0));
+            parcel.Children.Add(At(new Rectangle { Width = 6, Height = 22, Fill = B("#F3D9B1") }, 11, 0));
+            parcel.Children.Add(P("M17,9 C16,7 13.5,7.5 14,9.8 C14.5,11.5 17,13 17,13 C17,13 19.5,11.5 20,9.8 C20.5,7.5 18,7 17,9 Z", B("#FF8FA6")));
+            AddProp(Prop.Parcel, parcel);
+            var cap = new Canvas();
+            cap.Children.Add(P("M31,36 C31,21 69,21 69,36 Z", B("#FF5D73"), B("#E04358"), 1));
+            cap.Children.Add(P("M62,34.5 Q78,32 84,38 Q72,39.5 62,37.5 Z", B("#E04358")));
+            cap.Children.Add(At(E(6, 6, B("#FFE27A")), 47, 20));
+            cap.Children.Add(P("M41,29 Q50,25 59,29", null, Frozen(Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF)), 1.6));
+            AddProp(Prop.Cap, cap);
+
             puffTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             puffTimer.Tick += (s, e) => { puffTimer.Stop(); var m = shown; shown = (Mood)(-1); Show(m); };
         }
 
-        static bool TwoHanded(Prop p) { return p == Prop.Paper || p == Prop.Book || p == Prop.Snack || p == Prop.Boba; }
+        static bool TwoHanded(Prop p) { return p == Prop.Paper || p == Prop.Book || p == Prop.Snack || p == Prop.Boba || p == Prop.Parcel; }
 
         /// <summary>Little "o" mouth with puffed cheeks (blowing, sipping).</summary>
         public void PuffMouth(int ms)
@@ -129,6 +142,38 @@ namespace NotchIsland
         }
 
         public void Note1() { if (Particles) Note(); }
+
+        /// <summary>Courier mode: cap on, hugging a parcel, little legs running in place.</summary>
+        public void SetCarrying(bool on)
+        {
+            if (on)
+            {
+                FlashHead(Prop.Cap, 0);
+                FlashHand(Prop.Parcel, 0);
+                footL.BeginAnimation(TranslateTransform.YProperty, Loop(0, -3.5, 140, 0));
+                footR.BeginAnimation(TranslateTransform.YProperty, Loop(0, -3.5, 140, 140));
+                bob.BeginAnimation(TranslateTransform.YProperty, Loop(0, -2.2, 140, 0));
+                Flash(Mood.Focus, 0);
+            }
+            else
+            {
+                footL.BeginAnimation(TranslateTransform.YProperty, null);
+                footR.BeginAnimation(TranslateTransform.YProperty, null);
+                bob.BeginAnimation(TranslateTransform.YProperty, null);
+            }
+        }
+
+        /// <summary>Opens the parcel and holds the file up proudly.</summary>
+        public void Present()
+        {
+            SetCarrying(false);
+            FlashHand(Prop.None, 0);
+            Flash(Mood.Excited, 1600);
+            armL.BeginAnimation(RotateTransform.AngleProperty, Keys(110, -30, 120, 140, 130, ArmRestL));
+            armR.BeginAnimation(RotateTransform.AngleProperty, Keys(110, 30, -120, -140, -130, ArmRestR));
+            bob.BeginAnimation(TranslateTransform.YProperty, Pulse(0, -6, 160, 1, Anim.OutCubic));
+            if (Particles) Sparkle();
+        }
 
         /// <summary>Quick paw swipe.</summary>
         public void Swat()
