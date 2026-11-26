@@ -23,6 +23,43 @@ namespace NotchIsland
             {
                 Directory.CreateDirectory(SnapshotDir);
                 if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "dance") { await DanceTest(); Application.Current.Shutdown(); return; }
+                if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "qr")
+                {
+                    shelf.ReadOnly = true;
+                    string[] urls = { "http://192.168.1.20:47800/AbCdEfGhJkLm/", "http://10.0.0.5:47801/x/", "http://192.168.100.200:47805/ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ/" };
+                    for (int i = 0; i < urls.Length; i++)
+                    {
+                        var bmp = QrCode.Render(QrCode.Encode(urls[i]), 8, Colors.Black, Colors.White);
+                        var enc = new PngBitmapEncoder(); enc.Frames.Add(BitmapFrame.Create(bmp));
+                        using (var fs = File.Create(System.IO.Path.Combine(SnapshotDir, "qr" + i + ".png"))) enc.Save(fs);
+                    }
+                    File.WriteAllLines(System.IO.Path.Combine(SnapshotDir, "qr-expected.txt"), urls);
+                    // the panel itself, with a sample link (no server is started)
+                    shelf.Add(new[] { System.Reflection.Assembly.GetExecutingAssembly().Location });
+                    Expand("shelf");
+                    E<TextBlock>("PhoneUrl").Text = urls[0];
+                    E<Image>("PhoneQr").Source = QrCode.Render(QrCode.Encode(urls[0]), 6, Colors.Black, Colors.White);
+                    E<TextBlock>("PhoneStatus").Text = "Scan with your iPhone camera. Phone and laptop need the same Wi-Fi.";
+                    E<Grid>("PhonePanel").Visibility = Visibility.Visible;
+                    await Shot("19-phone-panel", 900);
+                    E<Grid>("PhonePanel").Visibility = Visibility.Collapsed;
+                    await Shot("20-shelf-toolbar", 300);
+                    Application.Current.Shutdown(); return;
+                }
+                if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "phonetest")
+                {
+                    shelf.ReadOnly = true;
+                    PhoneLink.InboxDir = System.IO.Path.Combine(SnapshotDir, "inbox");
+                    shelf.Add(new[] { System.Reflection.Assembly.GetExecutingAssembly().Location });
+                    if (!StartPhone()) { File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "url.txt"), "FAILED"); Application.Current.Shutdown(); return; }
+                    var got = new System.Text.StringBuilder();
+                    phone.Received += p => got.AppendLine("received " + System.IO.Path.GetFileName(p) + " pocket=" + shelf.Items.Count);
+                    File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "url.txt"), phone.Url);
+                    await Task.Delay(20000);
+                    File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "events.txt"), got.ToString());
+                    phone.Stop();
+                    Application.Current.Shutdown(); return;
+                }
                 if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "buddycpu")
                 {
                     ToggleBuddy();

@@ -108,7 +108,7 @@ namespace NotchIsland
             int n = shelf.Items.Count;
             E<Grid>("ShelfEmpty").Visibility = n == 0 ? Visibility.Visible : Visibility.Collapsed;
             shelfScroll.Visibility = n == 0 ? Visibility.Collapsed : Visibility.Visible;
-            E<TextBlock>("ShelfCount").Text = n == 0 ? "" : n + (n == 1 ? " item" : " items") + " in the pocket · double-click to open";
+            E<TextBlock>("ShelfCount").Text = n == 0 ? "" : n + (n == 1 ? " item" : " items");
             E<Button>("ShelfDragAll").Visibility = n > 1 ? Visibility.Visible : Visibility.Collapsed;
             E<Button>("ShelfClear").Visibility = n > 0 ? Visibility.Visible : Visibility.Collapsed;
         }

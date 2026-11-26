@@ -92,6 +92,7 @@ namespace NotchIsland
             WireShelf();
             WireTools();
             WireBuddy();
+            WirePhone();
 
             Settings.Changed += OnSettingChanged;
             Deactivated += (s, e) => { if (pinnedOpen) { pinnedOpen = false; SetNoActivate(true); ScheduleCollapse(250); } };
@@ -320,6 +321,7 @@ namespace NotchIsland
             quitting = true;
             SaveBuddy();
             if (buddy != null) buddy.Close();
+            if (phone != null) phone.Stop();
             Close();
             Application.Current.Shutdown();
         }
@@ -592,6 +594,7 @@ namespace NotchIsland
             else if (key == "HideInFullscreen") CheckFullscreen();
             else if (key == "ClipboardHistory" && !Settings.Get(key)) ClearClips();
             else if (key == "StartWithWindows") App.SetStartup(Settings.Get(key));
+            else if (key == "PhoneDrop") { if (Settings.Get(key)) StartPhone(); else StopPhone(); SyncSettingSwitch(key); }
         }
 
         static string FormatTime(TimeSpan t)

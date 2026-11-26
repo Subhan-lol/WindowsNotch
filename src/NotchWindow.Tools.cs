@@ -308,15 +308,25 @@ namespace NotchIsland
                 { "BatteryAlerts", "Charging & low battery" }, { "ScrollVolume", "Scroll = volume" },
                 { "ClipboardHistory", "Clipboard history" }, { "Visualizer", "Music visualizer" },
                 { "AlbumColors", "Colors from album art" }, { "Sounds", "Timer chime" },
-                { "StartWithWindows", "Start with Windows" },
+                { "StartWithWindows", "Start with Windows" }, { "PhoneDrop", "iPhone drop (Wi-Fi)" },
             };
             foreach (var kv in labels)
             {
                 var key = kv.Key;
-                var cb = new CheckBox { Content = kv.Value, IsChecked = Settings.Get(key), Style = (Style)Application.Current.Resources["Switch"] };
+                var cb = new CheckBox { Content = kv.Value, IsChecked = Settings.Get(key), Style = (Style)Application.Current.Resources["Switch"], Tag = key };
                 cb.Checked += (s, e) => Settings.Set(key, true);
                 cb.Unchecked += (s, e) => Settings.Set(key, false);
                 grid.Children.Add(cb);
+            }
+        }
+
+        /// <summary>Keep a settings switch in step when the value changes elsewhere (e.g. the iPhone panel).</summary>
+        void SyncSettingSwitch(string key)
+        {
+            foreach (var c in E<UniformGrid>("SettingsGrid").Children)
+            {
+                var cb = c as CheckBox;
+                if (cb != null && (string)cb.Tag == key && cb.IsChecked != Settings.Get(key)) cb.IsChecked = Settings.Get(key);
             }
         }
 

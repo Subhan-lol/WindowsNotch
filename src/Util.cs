@@ -47,7 +47,7 @@ namespace NotchIsland
         {
             { "ExpandOnHover", true }, { "HideInFullscreen", true }, { "VolumeHud", true }, { "BatteryAlerts", true },
             { "ClipboardHistory", true }, { "ScrollVolume", true }, { "AlbumColors", true }, { "Visualizer", true },
-            { "TrackPopups", true }, { "Sounds", true }, { "StartWithWindows", false }, { "BuddyOut", false },
+            { "TrackPopups", true }, { "Sounds", true }, { "StartWithWindows", false }, { "BuddyOut", false }, { "PhoneDrop", false },
         };
         public static event Action<string> Changed;
 
@@ -90,6 +90,17 @@ namespace NotchIsland
             var h = Changed; if (h != null) h(key);
         }
         public static IEnumerable<string> Keys { get { return defaults.Keys; } }
+
+        public static string GetStr(string key, string fallback)
+        {
+            string v;
+            return values.TryGetValue(key, out v) ? v : fallback;
+        }
+        public static void SetStr(string key, string v)
+        {
+            values[key] = v ?? "";
+            Save();
+        }
 
         public static double GetNum(string key, double fallback)
         {

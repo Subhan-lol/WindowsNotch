@@ -21,7 +21,8 @@ $refs = @(
 $res = @(
   "/resource:$root\ui\Notch.xaml,Notch.xaml",
   "/resource:$root\ui\Styles.xaml,Styles.xaml",
-  "/resource:$ico,notch.ico"
+  "/resource:$ico,notch.ico",
+  "/resource:$root\ui\phone.html,phone.html"
 )
 $src = Get-ChildItem "$root\src\*.cs" | ForEach-Object { $_.FullName }
 

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Notch Drop">
+<meta name="theme-color" content="#0b0b10">
+<link rel="apple-touch-icon" href="icon.png">
+<title>Notch Drop</title>
+<style>
+  :root { --bg:#0b0b10; --card:#16161d; --line:#26262f; --fg:#f4f4f8; --dim:#9a9aa8; --a1:#b8a6ff; --a2:#ff8fb1; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.4 -apple-system, "SF Pro Text", "Segoe UI", sans-serif; }
+  main { max-width:520px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); }
+  header { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  header h1 { font-size:22px; margin:0; letter-spacing:-.2px; }
+  header p { margin:2px 0 0; color:var(--dim); font-size:14px; }
+  .mochi { width:64px; height:64px; flex:none; }
+  .mochi.bounce { animation:bounce .5s ease; }
+  @keyframes bounce { 30% { transform:translateY(-8px) scale(1.04,.96);} 60% { transform:translateY(0) scale(.96,1.04);} }
+  .send { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:18px; border:0; border-radius:18px;
+          background:linear-gradient(135deg,var(--a1),var(--a2)); color:#16121f; font-size:18px; font-weight:700; cursor:pointer; }
+  .send:active { transform:scale(.98); }
+  input[type=file] { display:none; }
+  .hint { color:var(--dim); font-size:13px; text-align:center; margin:10px 0 22px; }
+  h2 { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin:22px 4px 10px; }
+  .list { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-top:1px solid var(--line); }
+  .row:first-child { border-top:0; }
+  .name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; }
+  .meta { color:var(--dim); font-size:12px; }
+  .save { flex:none; padding:7px 14px; border-radius:999px; background:#2a2a35; color:var(--fg); text-decoration:none; font-size:14px; font-weight:600; }
+  .bar { height:4px; border-radius:2px; background:#2a2a35; margin-top:6px; overflow:hidden; }
+  .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--a1),var(--a2)); transition:width .15s; }
+  .ok { color:#7df09a; font-size:13px; font-weight:600; }
+  .err { color:#ff6b6b; font-size:13px; font-weight:600; }
+  .empty { padding:16px; color:var(--dim); font-size:14px; text-align:center; }
+  footer { color:#5d5d6b; font-size:12px; text-align:center; margin-top:26px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg class="mochi" id="mochi" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M17,49 C13,35 15,20 22,13 C31,17 39,25 43,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
+      <path d="M21,43 C19,34 20,25 24,20 C29,23 34,28 37,34 Z" fill="#ffb4c6"/>
+      <path d="M83,49 C87,35 85,20 78,13 C69,17 61,25 57,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
+      <path d="M79,43 C81,34 80,25 76,20 C71,23 66,28 63,34 Z" fill="#ffb4c6"/>
+      <path d="M50,28 C75,28 91,44 91,64 C91,83 74,91 50,91 C26,91 9,83 9,64 C9,44 25,28 50,28 Z" fill="#fff2e8" stroke="#6b4a3a55" stroke-width="1.6"/>
+      <ellipse cx="25" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/><ellipse cx="75" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/>
+      <ellipse cx="36" cy="60" rx="6.5" ry="7.5" fill="#2a2238"/><ellipse cx="64" cy="60" rx="6.5" ry="7.5" fill="#2a2238"/>
+      <circle cx="38.5" cy="56.5" r="2.6" fill="#fff"/><circle cx="66.5" cy="56.5" r="2.6" fill="#fff"/>
+      <path d="M45.5,67.2 Q47.7,70.6 50,67.6 Q52.3,70.6 54.5,67.2" fill="none" stroke="#2a2238" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>Notch Drop</h1>
+      <p id="status">Connected to {{HOST}}</p>
+    </div>
+  </header>
+
+  <button class="send" id="pick">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    Send to laptop
+  </button>
+  <input type="file" id="file" multiple>
+  <div class="hint">Photos, videos, PDFs, anything. They land in the notch pocket and in Downloads › From iPhone.</div>
+
+  <div id="uploads" class="list" style="display:none"></div>
+
+  <h2>In your notch pocket</h2>
+  <div id="pocket" class="list"><div class="empty">Loading…</div></div>
+
+  <footer>Tip: tap Share › Add to Home Screen for one-tap sending.<br>Works while your phone and laptop are on the same Wi-Fi.</footer>
+</main>
+<script>
+  var base = location.pathname.replace(/\/?$/, '/');
+  var pick = document.getElementById('pick'), input = document.getElementById('file');
+  var uploads = document.getElementById('uploads'), pocket = document.getElementById('pocket'), mochi = document.getElementById('mochi');
+  pick.onclick = function () { input.click(); };
+  input.onchange = function () { var files = Array.prototype.slice.call(input.files); input.value = ''; sendAll(files); };
+
+  function fmt(n) { if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(0) + ' KB'; if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB'; return (n / 1073741824).toFixed(2) + ' GB'; }
+  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function sendAll(files) {
+    if (!files.length) return;
+    uploads.style.display = '';
+    var rows = files.map(function (f) {
+      var row = document.createElement('div'); row.className = 'row';
+      row.innerHTML = '<div style="flex:1;min-width:0"><div class="name">' + esc(f.name) + '</div><div class="bar"><i></i></div></div><div class="meta">' + fmt(f.size) + '</div>';
+      uploads.insertBefore(row, uploads.firstChild); return row;
+    });
+    var i = 0;
+    (function next() {
+      if (i >= files.length) { refresh(); return; }
+      var f = files[i], row = rows[i]; i++;
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', base + 'upload?name=' + encodeURIComponent(f.name));
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable) row.querySelector('i').style.width = (e.loaded / e.total * 100) + '%'; };
+      xhr.onload = function () {
+        var ok = xhr.status === 200;
+        row.querySelector('.meta').outerHTML = ok ? '<div class="ok">Sent ✓</div>' : '<div class="err">Failed</div>';
+        if (ok) { mochi.classList.remove('bounce'); void mochi.offsetWidth; mochi.classList.add('bounce'); }
+        next();
+      };
+      xhr.onerror = function () { row.querySelector('.meta').outerHTML = '<div class="err">Can\'t reach laptop</div>'; next(); };
+      xhr.send(f);
+    })();
+  }
+
+  function refresh() {
+    fetch(base + 'files', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (list) {
+      document.getElementById('status').textContent = 'Connected to {{HOST}}';
+      if (!list.length) { pocket.innerHTML = '<div class="empty">Nothing in the pocket yet. Drag files onto the notch on your laptop and they show up here.</div>'; return; }
+      pocket.innerHTML = list.map(function (f) {
+        return '<div class="row"><div style="flex:1;min-width:0"><div class="name">' + esc(f.name) + '</div><div class="meta">' + fmt(f.size) + '</div></div>' +
+               '<a class="save" href="' + base + 'file?i=' + f.i + '" download>Save</a></div>';
+      }).join('');
+    }).catch(function () { document.getElementById('status').textContent = 'Can\'t reach the laptop. Same Wi-Fi?'; });
+  }
+  refresh();
+  setInterval(function () { if (document.visibilityState === 'visible') refresh(); }, 4000);
+</script>
+</body>
+</html>

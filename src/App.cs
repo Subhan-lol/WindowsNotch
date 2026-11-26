@@ -23,6 +23,7 @@ namespace NotchIsland
             {
                 if (!created && NotchWindow.SnapshotDir == null) return;
                 Settings.Load();
+                if (NotchWindow.SnapshotDir != null) Settings.ReadOnly = true; // tests never touch real settings
                 System.Windows.Media.Animation.Timeline.DesiredFrameRateProperty.OverrideMetadata(
                     typeof(System.Windows.Media.Animation.Timeline), new FrameworkPropertyMetadata { DefaultValue = 40 });
 

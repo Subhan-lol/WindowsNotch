@@ -21,6 +21,12 @@ Build it once (see Building below), then run `bin\NotchIsland.exe`. It sits at t
 - **Paste** adds whatever is on your clipboard. **Snip** opens the Windows screenshot tool and drops the result straight into the pocket.
 - The pocket only holds references to your files. It never moves or copies them, and it remembers them after a restart.
 
+**iPhone drop (iPhone ↔ laptop over Wi-Fi)**
+- Open the notch, go to the pocket tab and tap **iPhone**. Scan the QR code with your iPhone camera.
+- Safari opens a little "Notch Drop" page. Tap **Send to laptop** and pick photos, videos or files. They land in the notch pocket (Mochi catches them) and are saved in `Downloads\From iPhone`.
+- It works the other way too: everything in your pocket is listed on that page with a **Save** button.
+- Tip: in Safari, tap Share › **Add to Home Screen** for a one-tap Mochi icon.
+
 **More**
 - **Clipboard history:** the last 25 things you copied. Click one to copy it again, or pin the ones you want to keep. It stays in memory only and skips anything password managers mark as private.
 - **Focus timer:** presets from 1 to 45 minutes. A countdown ring shows in the collapsed notch, and Mochi celebrates when time's up.
@@ -48,6 +54,12 @@ Build it once (see Building below), then run `bin\NotchIsland.exe`. It sits at t
 - It dances when music plays and focuses when the timer is running. It still reacts to everything you do in the notch.
 - Send it home by dragging or throwing it at the notch, double-clicking it, using "Call home" in the notch, or the tray menu ("Let Mochi out / Call Mochi home").
 - It remembers whether it was out and where after a restart. It hides with the notch in fullscreen apps.
+
+## iPhone drop: setup notes
+- **First time:** Windows Firewall asks whether Notch Island may use the network. Click **Allow**. If your Wi-Fi is set to *Public*, either tick *Public networks* in that prompt or switch the network to *Private* (Settings › Network & internet › Wi-Fi › your network › Network profile type).
+- **Privacy:** it only works on your own Wi-Fi, and nothing goes through the internet or any cloud. Every link has a secret key, and anything without it gets "not found". **New key** makes old QR codes and home-screen icons stop working. The connection is plain HTTP on your local network, so use it on Wi-Fi you trust. Turn it off with **Turn off** or in settings ("iPhone drop").
+- **Send from any app (optional):** in the Shortcuts app, make a shortcut that shows in the Share Sheet and accepts files. Add **Get Contents of URL** with the notch link plus `upload?name=` and the file's *Name*, Method **POST**, Request Body **File** = *Shortcut Input*. Then Share › your shortcut sends straight to the notch.
+- Your laptop's address can change when it reconnects to Wi-Fi. If the phone page stops connecting, scan the QR code again.
 
 ## Light on resources
 - When nothing is happening it uses about 0% CPU. Nothing redraws except an occasional blink.
