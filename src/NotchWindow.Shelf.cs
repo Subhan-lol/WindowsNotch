@@ -120,6 +120,7 @@ namespace NotchIsland
             var item = btn.DataContext as ShelfItem;
             if (item == null) return;
             if ((string)btn.Tag == "remove") { shelf.Remove(item); React(m => m.Wave()); }
+            else if ((string)btn.Tag == "phone") SendFilesToPhone(new[] { item.Path });
             else if ((string)btn.Tag == "reveal")
             {
                 try { Process.Start("explorer.exe", "/select,\"" + item.Path + "\""); } catch { }
@@ -150,6 +151,7 @@ namespace NotchIsland
             if (draggingOut || !Acceptable(e.Data)) { e.Effects = DragDropEffects.None; return; }
             e.Effects = (e.AllowedEffects & DragDropEffects.Copy) != 0 ? DragDropEffects.Copy : DragDropEffects.Link;
             dragLeaveTimer.Stop();
+            UpdateDropZone(e);
             if (dragOver) return;
             dragOver = true;
             Touch();
@@ -182,6 +184,15 @@ namespace NotchIsland
             e.Handled = true;
             dragLeaveTimer.Stop();
             if (draggingOut) { EndDragOver(); return; }
+            UpdateDropZone(e);
+            if (dropToPhone)
+            {
+                EndDragOver();
+                try { SendDataToPhone(e.Data); } catch (Exception ex) { Debug.WriteLine(ex); }
+                e.Effects = DragDropEffects.Copy;
+                ScheduleCollapse(1800);
+                return;
+            }
             int n = 0;
             try { n = AddFromData(e.Data); } catch (Exception ex) { Debug.WriteLine(ex); }
             EndDragOver();
@@ -194,6 +205,48 @@ namespace NotchIsland
             else moodText.Text = "already had that one";
             e.Effects = DragDropEffects.Copy;
             ScheduleCollapse(1600);
+        }
+
+        bool dropToPhone;
+
+        /// <summary>With iPhone drop on, the drop area splits in two: keep in the pocket, or send to the phone.</summary>
+        void UpdateDropZone(DragEventArgs e)
+        {
+            bool phoneOn = phone != null && phone.Running;
+            E<ColumnDefinition>("DropPhoneCol").Width = phoneOn ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+            bool was = dropToPhone;
+            dropToPhone = false;
+            if (phoneOn)
+            {
+                var z = E<Grid>("DropZonePhone");
+                var p = e.GetPosition(z);
+                dropToPhone = z.ActualWidth > 0 && p.X >= 0 && p.Y >= 0 && p.X <= z.ActualWidth && p.Y <= z.ActualHeight;
+            }
+            if (was == dropToPhone && phoneOn) return;
+            var accent = (Brush)root.Resources["Accent"];
+            var dim = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+            E<System.Windows.Shapes.Rectangle>("DropPhoneRect").Stroke = dropToPhone ? accent : dim;
+            E<System.Windows.Shapes.Rectangle>("DropPocketRect").Stroke = dropToPhone ? dim : accent;
+            if (dropToPhone) { moodText.Text = "I'll run it over to your iPhone!"; if (!buddyOut) { big.FlashHead(Prop.Cap, 0); } }
+            else if (was) { moodText.Text = "ooh, gimme gimme!"; if (!buddyOut) big.FlashHead(Prop.None, 0); }
+        }
+
+        void SendDataToPhone(IDataObject d)
+        {
+            if (d.GetDataPresent(DataFormats.FileDrop))
+            {
+                var files = d.GetData(DataFormats.FileDrop) as string[];
+                if (files != null) { SendFilesToPhone(files); return; }
+            }
+            if (d.GetDataPresent(DataFormats.Bitmap))
+            {
+                var img = d.GetData(DataFormats.Bitmap) as BitmapSource;
+                if (img != null) { SendFilesToPhone(new[] { shelf.SaveImage(img, "Image") }); return; }
+            }
+            string text = null;
+            if (d.GetDataPresent(DataFormats.UnicodeText)) text = d.GetData(DataFormats.UnicodeText) as string;
+            else if (d.GetDataPresent(DataFormats.Text)) text = d.GetData(DataFormats.Text) as string;
+            if (!string.IsNullOrWhiteSpace(text)) SendTextToPhone(text);
         }
 
         int AddFromData(IDataObject d)

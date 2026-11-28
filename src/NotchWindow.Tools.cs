@@ -181,6 +181,7 @@ namespace NotchIsland
                 clips.Insert(item.Pinned ? 0 : clips.Count(c => c.Pinned), item);
             }
             else if ((string)btn.Tag == "delete") { clips.Remove(item); React(m => m.Wiggle()); }
+            else if ((string)btn.Tag == "phone") SendTextToPhone(item.Text);
             e.Handled = true;
         }
 

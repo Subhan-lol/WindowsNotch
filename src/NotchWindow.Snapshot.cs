@@ -85,8 +85,18 @@ namespace NotchIsland
                         if (!shot && b > 2000000) { shot = true; got.AppendLine("card visible=" + (deliveryCard.Visibility == Visibility.Visible) + " meta='" + E<TextBlock>("DelMeta").Text + "'"); await Shot("25-live-receiving", 50); }
                     };
                     phone.UploadFinished += (id, p, ok) => got.AppendLine("finished #" + id + " ok=" + ok + " progressEvents=" + progressEvents + " title='" + E<TextBlock>("DelTitle").Text + "'");
+                    bool shotOut = false, shotText = false;
+                    phone.OutboxSeen += async id => { got.AppendLine("phone picked up #" + id); if (!shotOut) { shotOut = true; await Task.Delay(1500); got.AppendLine("card: '" + E<TextBlock>("DelTitle").Text + "' / '" + E<TextBlock>("DelMeta").Text + "'"); await Shot("27-out-delivered", 10); } };
+                    phone.OutProgress += (id, a, b) => got.AppendLine("phone downloading #" + id + " " + a + "/" + b);
+                    phone.OutSaved += id => got.AppendLine("phone saved #" + id);
+                    phone.TextReceived += async t => { got.AppendLine("text from phone: " + t); if (!shotText) { shotText = true; await Task.Delay(1500); got.AppendLine("card: '" + E<TextBlock>("DelTitle").Text + "' / '" + E<TextBlock>("DelMeta").Text + "'"); await Shot("28-text-in", 10); } };
                     File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "url.txt"), phone.Url);
-                    await Task.Delay(20000);
+                    await Task.Delay(800);
+                    SendTextToPhone("https://example.com/hello-from-laptop");
+                    SendFilesToPhone(new[] { System.Reflection.Assembly.GetExecutingAssembly().Location });
+                    got.AppendLine("queued 2 for phone, online=" + phone.PhoneOnline + " card: '" + E<TextBlock>("DelTitle").Text + "'");
+                    await Shot("26-out-waiting", 400);
+                    await Task.Delay(24000);
                     File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "events.txt"), got.ToString());
                     phone.Stop();
                     Application.Current.Shutdown(); return;

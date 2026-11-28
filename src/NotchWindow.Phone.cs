@@ -22,6 +22,26 @@ namespace NotchIsland
             };
             E<Button>("ShelfPhone").Click += (s, e) => ShowPhonePanel();
             E<Button>("PhoneDone").Click += (s, e) => E<Grid>("PhonePanel").Visibility = Visibility.Collapsed;
+            E<Button>("PhoneSendClip").Click += (s, e) =>
+            {
+                try
+                {
+                    if (Clipboard.ContainsFileDropList())
+                    {
+                        var list = Clipboard.GetFileDropList(); var arr = new string[list.Count]; list.CopyTo(arr, 0);
+                        SendFilesToPhone(arr);
+                    }
+                    else if (Clipboard.ContainsImage())
+                    {
+                        var img = Clipboard.GetImage();
+                        if (img != null) SendFilesToPhone(new[] { shelf.SaveImage(img, "Screenshot") });
+                    }
+                    else if (Clipboard.ContainsText()) SendTextToPhone(Clipboard.GetText());
+                    else { E<TextBlock>("PhoneStatus").Text = "Your clipboard is empty. Copy some text, a link or a file first."; return; }
+                    E<TextBlock>("PhoneStatus").Text = phone.PhoneOnline ? "Mochi's delivering it to your iPhone…" : "Open Notch Drop on your iPhone and Mochi will deliver it.";
+                }
+                catch { E<TextBlock>("PhoneStatus").Text = "Couldn't read the clipboard, try again."; }
+            };
             E<Button>("PhoneOff").Click += (s, e) => Settings.Set("PhoneDrop", false);
             E<Button>("PhoneNewKey").Click += (s, e) =>
             {

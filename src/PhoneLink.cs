@@ -45,6 +45,62 @@ namespace NotchIsland
         /// <summary>UI thread: (id, saved path or file name, success).</summary>
         public event Action<int, string, bool> UploadFinished;
         static int nextUploadId;
+        readonly string bootId = Guid.NewGuid().ToString("N").Substring(0, 8);
+
+        /// <summary>UI thread: the phone's page picked up an outgoing item (id).</summary>
+        public event Action<int> OutboxSeen;
+        /// <summary>UI thread: the phone is downloading an outgoing file (id, sent, total).</summary>
+        public event Action<int, long, long> OutProgress;
+        /// <summary>UI thread: the phone finished saving an outgoing file (id).</summary>
+        public event Action<int> OutSaved;
+        /// <summary>UI thread: text or a link typed on the phone.</summary>
+        public event Action<string> TextReceived;
+
+        public class OutItem
+        {
+            public int Id; public string Kind; public string Path; public string Name; public long Size; public string Text; public bool Seen, Saved;
+        }
+        readonly List<OutItem> outbox = new List<OutItem>();
+        readonly object outLock = new object();
+        int nextOutId;
+        long lastPollTicks;
+
+        /// <summary>True if the Notch Drop page is open on the phone right now (it checks in every 2 seconds).</summary>
+        public bool PhoneOnline { get { return (DateTime.UtcNow.Ticks - Interlocked.Read(ref lastPollTicks)) < TimeSpan.FromSeconds(8).Ticks; } }
+
+        public static bool IsLink(string t)
+        {
+            t = (t ?? "").Trim();
+            return !t.Contains(" ") && !t.Contains("\n") && (t.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || t.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+        }
+
+        public OutItem SendFile(string path)
+        {
+            var it = new OutItem { Kind = "file", Path = path, Name = Path.GetFileName(path) };
+            try { it.Size = new FileInfo(path).Length; } catch { }
+            return Enqueue(it);
+        }
+
+        public OutItem SendText(string text)
+        {
+            text = text ?? "";
+            if (text.Length > 100000) text = text.Substring(0, 100000);
+            var it = new OutItem { Kind = IsLink(text) ? "link" : "text", Text = text, Name = text.Trim().Length > 60 ? text.Trim().Substring(0, 60) + "…" : text.Trim() };
+            return Enqueue(it);
+        }
+
+        OutItem Enqueue(OutItem it)
+        {
+            lock (outLock)
+            {
+                it.Id = ++nextOutId;
+                outbox.Add(it);
+                while (outbox.Count > 30) outbox.RemoveAt(0);
+            }
+            return it;
+        }
+
+        public OutItem FindOut(int id) { lock (outLock) return outbox.FirstOrDefault(o => o.Id == id); }
 
         public PhoneLink(Dispatcher d, ShelfStore s)
         {
@@ -169,8 +225,15 @@ namespace NotchIsland
                 Send(s, 200, "text/html; charset=utf-8", Encoding.UTF8.GetBytes(Page()));
             }
             else if (method == "GET" && route == "icon.png" && icon != null) Send(s, 200, "image/png", icon);
-            else if (method == "GET" && route == "files") Send(s, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(FilesJson()));
+            else if (method == "GET" && route == "files" && Touch()) Send(s, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(FilesJson()));
             else if (method == "GET" && route == "file") SendFile(s, QueryInt(query, "i"));
+            else if (method == "GET" && route == "inbox") Send(s, 200, "application/json; charset=utf-8", Encoding.UTF8.GetBytes(InboxJson(Math.Max(0, QueryInt(query, "since")))));
+            else if (method == "GET" && route == "out") SendOut(s, QueryInt(query, "id"), Query(query, "inline") == "1");
+            else if (method == "POST" && route == "text")
+            {
+                if (expect) { var c = Encoding.ASCII.GetBytes("HTTP/1.1 100 Continue\r\n\r\n"); s.Write(c, 0, c.Length); s.Flush(); }
+                ReceiveText(s, length);
+            }
             else if (method == "POST" && route == "upload")
             {
                 if (expect) { var c = Encoding.ASCII.GetBytes("HTTP/1.1 100 Continue\r\n\r\n"); s.Write(c, 0, c.Length); s.Flush(); }
@@ -322,6 +385,100 @@ namespace NotchIsland
             for (int i = 2; ; i++) { var p = Path.Combine(dir, n + " (" + i + ")" + ext); if (!File.Exists(p)) return p; }
         }
 
+        bool Touch() { Interlocked.Exchange(ref lastPollTicks, DateTime.UtcNow.Ticks); return true; }
+
+        // ---------------- laptop -> phone deliveries ----------------
+        string InboxJson(int since)
+        {
+            Touch();
+            List<OutItem> fresh;
+            var newlySeen = new List<int>();
+            lock (outLock)
+            {
+                fresh = outbox.Where(o => o.Id > since).ToList();
+                foreach (var o in fresh) if (!o.Seen) { o.Seen = true; newlySeen.Add(o.Id); }
+            }
+            foreach (var id in newlySeen)
+            {
+                int copy = id;
+                ui.BeginInvoke(new Action(() => { var h = OutboxSeen; if (h != null) h(copy); }));
+            }
+            var sb = new StringBuilder("[");
+            for (int i = 0; i < fresh.Count; i++)
+            {
+                var o = fresh[i];
+                if (i > 0) sb.Append(',');
+                sb.Append("{\"id\":").Append(o.Id).Append(",\"kind\":\"").Append(o.Kind).Append("\",\"name\":\"").Append(Json(o.Name ?? ""))
+                  .Append("\",\"size\":").Append(o.Size).Append(",\"image\":").Append(IsImage(o.Path) ? "true" : "false");
+                if (o.Text != null) sb.Append(",\"text\":\"").Append(Json(o.Text)).Append('"');
+                sb.Append('}');
+            }
+            return sb.Append(']').ToString();
+        }
+
+        static bool IsImage(string path)
+        {
+            if (path == null) return false;
+            var e = Path.GetExtension(path).ToLowerInvariant();
+            return e == ".jpg" || e == ".jpeg" || e == ".png" || e == ".gif" || e == ".webp" || e == ".heic" || e == ".bmp";
+        }
+
+        void SendOut(Stream s, int id, bool inline)
+        {
+            var o = FindOut(id);
+            if (o == null || o.Kind != "file" || !File.Exists(o.Path)) { Send(s, 404, "text/plain", Encoding.UTF8.GetBytes("Not found")); return; }
+            using (var fs = File.OpenRead(o.Path))
+            {
+                string name = Path.GetFileName(o.Path);
+                string ascii = new string(name.Select(ch => ch < 128 && ch != '"' ? ch : '_').ToArray());
+                var head = "HTTP/1.1 200 OK\r\nContent-Type: " + Mime(o.Path) + "\r\nContent-Length: " + fs.Length +
+                           "\r\nContent-Disposition: " + (inline ? "inline" : "attachment") + "; filename=\"" + ascii + "\"; filename*=UTF-8''" + Uri.EscapeDataString(name) +
+                           "\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n";
+                var h = Encoding.ASCII.GetBytes(head);
+                s.Write(h, 0, h.Length);
+                var buf = new byte[81920];
+                long sent = 0, total = fs.Length;
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                long last = -1000;
+                int n;
+                while ((n = fs.Read(buf, 0, buf.Length)) > 0)
+                {
+                    s.Write(buf, 0, n);
+                    sent += n;
+                    if (!inline && clock.ElapsedMilliseconds - last >= 100)
+                    {
+                        last = clock.ElapsedMilliseconds;
+                        long sc = sent;
+                        ui.BeginInvoke(new Action(() => { var p = OutProgress; if (p != null) p(id, sc, total); }));
+                    }
+                }
+                s.Flush();
+                if (!inline)
+                {
+                    o.Saved = true;
+                    ui.BeginInvoke(new Action(() => { var d = OutSaved; if (d != null) d(id); }));
+                }
+            }
+        }
+
+        void ReceiveText(Stream s, long length)
+        {
+            if (length <= 0 || length > 200000) { Send(s, 400, "text/plain", Encoding.UTF8.GetBytes("Bad length")); return; }
+            var buf = new byte[length];
+            int got = 0;
+            while (got < length)
+            {
+                int n = s.Read(buf, got, (int)(length - got));
+                if (n <= 0) return;
+                got += n;
+            }
+            string text = Encoding.UTF8.GetString(buf).TrimStart('﻿').Trim();
+            if (text.Length == 0) { Send(s, 400, "text/plain", Encoding.UTF8.GetBytes("Empty")); return; }
+            Touch();
+            ui.BeginInvoke(new Action(() => { var h = TextReceived; if (h != null) h(text); }));
+            Send(s, 200, "application/json", Encoding.UTF8.GetBytes("{\"ok\":true}"));
+        }
+
         // ---------------- download: pocket -> phone ----------------
         List<string> PocketFiles()
         {
@@ -394,7 +551,7 @@ namespace NotchIsland
         {
             using (var st = Assembly.GetExecutingAssembly().GetManifestResourceStream("phone.html"))
             using (var r = new StreamReader(st, Encoding.UTF8))
-                return r.ReadToEnd().Replace("{{HOST}}", Environment.MachineName);
+                return r.ReadToEnd().Replace("{{HOST}}", Environment.MachineName).Replace("{{BOOT}}", bootId);
         }
 
         static byte[] RenderIcon()

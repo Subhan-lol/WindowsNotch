@@ -24,7 +24,10 @@ Build it once (see Building below), then run `bin\NotchIsland.exe`. It sits at t
 **iPhone drop (iPhone ↔ laptop over Wi-Fi)**
 - Open the notch, go to the pocket tab and tap **iPhone**. Scan the QR code with your iPhone camera.
 - Safari opens a little "Notch Drop" page. Tap **Send to laptop** and pick photos, videos or files. They land in the notch pocket (Mochi catches them) and are saved in `Downloads\From iPhone`.
-- It works the other way too: everything in your pocket is listed on that page with a **Save** button.
+- **Laptop → iPhone, delivered by Mochi:** hover a pocket file or clipboard item and tap the phone button, drop something on the notch's **Send to iPhone** zone, or use **Send clipboard** in the iPhone panel. Mochi carries it over: the phone page drops a "Mochi brought you…" banner with a preview and **Save** / **Copy** / **Open**. The notch shows "Delivered to your iPhone ✓", then "Saved on your iPhone ✓" once you tap Save.
+- **Links and text, both ways:** type or paste on the phone page and tap **Send**. It lands on the laptop's clipboard, with a card in the notch (click it to open a link). Text sent from the laptop shows up on the phone with Copy and Open buttons.
+- **You don't have to check:** every transfer plays as a little delivery in the notch (progress, unpacking, a green ✓), a "new" badge stays until you look, and you get a Windows notification if the notch is hidden.
+- Everything in your pocket is also listed on the phone page with a **Save** button.
 - Tip: in Safari, tap Share › **Add to Home Screen** for a one-tap Mochi icon.
 
 **More**

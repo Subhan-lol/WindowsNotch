@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="icon.png">
 <title>Notch Drop</title>
 <style>
-  :root { --bg:#0b0b10; --card:#16161d; --line:#26262f; --fg:#f4f4f8; --dim:#9a9aa8; --a1:#b8a6ff; --a2:#ff8fb1; }
+  :root { --bg:#0b0b10; --card:#16161d; --line:#26262f; --fg:#f4f4f8; --dim:#9a9aa8; --a1:#b8a6ff; --a2:#ff8fb1; --ok:#7df09a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.4 -apple-system, "SF Pro Text", "Segoe UI", sans-serif; }
   main { max-width:520px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 28px); }
@@ -18,110 +18,219 @@
   header h1 { font-size:22px; margin:0; letter-spacing:-.2px; }
   header p { margin:2px 0 0; color:var(--dim); font-size:14px; }
   .mochi { width:64px; height:64px; flex:none; }
-  .mochi.bounce { animation:bounce .5s ease; }
+  .bounce { animation:bounce .5s ease; }
   @keyframes bounce { 30% { transform:translateY(-8px) scale(1.04,.96);} 60% { transform:translateY(0) scale(.96,1.04);} }
-  .send { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:18px; border:0; border-radius:18px;
-          background:linear-gradient(135deg,var(--a1),var(--a2)); color:#16121f; font-size:18px; font-weight:700; cursor:pointer; }
-  .send:active { transform:scale(.98); }
+  .send { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; padding:17px; border:0; border-radius:18px;
+          background:linear-gradient(135deg,var(--a1),var(--a2)); color:#16121f; font-size:18px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .send:active, .btn:active { transform:scale(.97); }
   input[type=file] { display:none; }
-  .hint { color:var(--dim); font-size:13px; text-align:center; margin:10px 0 22px; }
-  h2 { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin:22px 4px 10px; }
+  .compose { display:flex; gap:8px; margin-top:10px; }
+  .compose textarea { flex:1; min-height:46px; max-height:140px; resize:none; padding:12px 14px; border-radius:16px; border:1px solid var(--line);
+                      background:var(--card); color:var(--fg); font:15px/1.35 inherit; font-family:inherit; outline:none; }
+  .compose textarea:focus { border-color:#4a4a5a; }
+  .btn { flex:none; border:0; border-radius:999px; padding:9px 16px; background:#2a2a35; color:var(--fg); font:600 14px inherit; font-family:inherit; text-decoration:none; display:inline-block; cursor:pointer; }
+  .btn.primary { background:var(--fg); color:#111; }
+  .hint { color:var(--dim); font-size:13px; text-align:center; margin:10px 0 4px; }
+  h2 { font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color:var(--dim); margin:24px 4px 10px; }
   .list { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
   .row { display:flex; align-items:center; gap:12px; padding:12px 14px; border-top:1px solid var(--line); }
   .row:first-child { border-top:0; }
-  .name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; }
+  .grow { flex:1; min-width:0; }
+  .name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; }
   .meta { color:var(--dim); font-size:12px; }
-  .save { flex:none; padding:7px 14px; border-radius:999px; background:#2a2a35; color:var(--fg); text-decoration:none; font-size:14px; font-weight:600; }
   .bar { height:4px; border-radius:2px; background:#2a2a35; margin-top:6px; overflow:hidden; }
   .bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--a1),var(--a2)); transition:width .15s; }
-  .ok { color:#7df09a; font-size:13px; font-weight:600; }
+  .ok { color:var(--ok); font-size:13px; font-weight:600; }
   .err { color:#ff6b6b; font-size:13px; font-weight:600; }
   .empty { padding:16px; color:var(--dim); font-size:14px; text-align:center; }
+  /* deliveries from the laptop */
+  .gift { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; margin-bottom:10px; }
+  .gift.new { animation:slidein .55s cubic-bezier(.2,1.3,.4,1); border-color:#5b4c8f; box-shadow:0 0 0 1px #5b4c8f55, 0 8px 30px #b8a6ff22; }
+  @keyframes slidein { from { opacity:0; transform:translateY(-24px) scale(.96); } to { opacity:1; transform:none; } }
+  .gift .top { display:flex; align-items:center; gap:10px; }
+  .gift .tag { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--a1); }
+  .gift img { display:block; width:100%; max-height:260px; object-fit:contain; border-radius:12px; margin-top:10px; background:#0f0f14; }
+  .gift .txt { margin-top:8px; padding:10px 12px; border-radius:12px; background:#0f0f14; font-size:15px; white-space:pre-wrap; word-break:break-word; max-height:180px; overflow:auto; }
+  .gift .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  /* the banner Mochi drops in with */
+  .banner { position:fixed; left:12px; right:12px; top:calc(env(safe-area-inset-top) + 8px); z-index:9; display:flex; align-items:center; gap:12px;
+            background:#1d1a2b; border:1px solid #4a3f73; border-radius:18px; padding:10px 14px; box-shadow:0 12px 40px #0009;
+            transform:translateY(-160%); transition:transform .45s cubic-bezier(.2,1.3,.4,1); }
+  .banner.show { transform:none; }
+  .banner svg { width:44px; height:44px; flex:none; }
+  .banner b { display:block; font-size:15px; }
+  .banner span { color:var(--dim); font-size:13px; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   footer { color:#5d5d6b; font-size:12px; text-align:center; margin-top:26px; }
 </style>
 </head>
 <body>
+<div class="banner" id="banner">
+  <svg viewBox="0 0 100 100"><use href="#mochi-shape"/><rect x="36" y="63" width="28" height="22" rx="3" fill="#d9a066" stroke="#b07a45" stroke-width="1.2"/><rect x="47" y="63" width="6" height="22" fill="#f3d9b1"/></svg>
+  <div style="min-width:0"><b id="bannerTitle">Mochi brought you something!</b><span id="bannerText"></span></div>
+</div>
 <main>
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <g id="mochi-shape">
+        <path d="M17,49 C13,35 15,20 22,13 C31,17 39,25 43,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
+        <path d="M21,43 C19,34 20,25 24,20 C29,23 34,28 37,34 Z" fill="#ffb4c6"/>
+        <path d="M83,49 C87,35 85,20 78,13 C69,17 61,25 57,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
+        <path d="M79,43 C81,34 80,25 76,20 C71,23 66,28 63,34 Z" fill="#ffb4c6"/>
+        <path d="M50,28 C75,28 91,44 91,64 C91,83 74,91 50,91 C26,91 9,83 9,64 C9,44 25,28 50,28 Z" fill="#fff2e8" stroke="#6b4a3a55" stroke-width="1.6"/>
+        <ellipse cx="25" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/><ellipse cx="75" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/>
+        <ellipse cx="36" cy="58" rx="6.5" ry="7.5" fill="#2a2238"/><ellipse cx="64" cy="58" rx="6.5" ry="7.5" fill="#2a2238"/>
+        <circle cx="38.5" cy="54.5" r="2.6" fill="#fff"/><circle cx="66.5" cy="54.5" r="2.6" fill="#fff"/>
+        <path d="M45.5,66.2 Q47.7,69.6 50,66.6 Q52.3,69.6 54.5,66.2" fill="none" stroke="#2a2238" stroke-width="2" stroke-linecap="round"/>
+      </g>
+    </defs>
+  </svg>
   <header>
-    <svg class="mochi" id="mochi" viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M17,49 C13,35 15,20 22,13 C31,17 39,25 43,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
-      <path d="M21,43 C19,34 20,25 24,20 C29,23 34,28 37,34 Z" fill="#ffb4c6"/>
-      <path d="M83,49 C87,35 85,20 78,13 C69,17 61,25 57,33 Z" fill="#fff4ea" stroke="#6b4a3a55" stroke-width="1.6"/>
-      <path d="M79,43 C81,34 80,25 76,20 C71,23 66,28 63,34 Z" fill="#ffb4c6"/>
-      <path d="M50,28 C75,28 91,44 91,64 C91,83 74,91 50,91 C26,91 9,83 9,64 C9,44 25,28 50,28 Z" fill="#fff2e8" stroke="#6b4a3a55" stroke-width="1.6"/>
-      <ellipse cx="25" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/><ellipse cx="75" cy="69" rx="6.5" ry="3.8" fill="#ff9ab0" opacity=".6"/>
-      <ellipse cx="36" cy="60" rx="6.5" ry="7.5" fill="#2a2238"/><ellipse cx="64" cy="60" rx="6.5" ry="7.5" fill="#2a2238"/>
-      <circle cx="38.5" cy="56.5" r="2.6" fill="#fff"/><circle cx="66.5" cy="56.5" r="2.6" fill="#fff"/>
-      <path d="M45.5,67.2 Q47.7,70.6 50,67.6 Q52.3,70.6 54.5,67.2" fill="none" stroke="#2a2238" stroke-width="2" stroke-linecap="round"/>
-    </svg>
+    <svg class="mochi" id="mochi" viewBox="0 0 100 100" aria-hidden="true"><use href="#mochi-shape"/></svg>
     <div>
       <h1>Notch Drop</h1>
       <p id="status">Connected to {{HOST}}</p>
     </div>
   </header>
 
+  <div id="giftsWrap" style="display:none">
+    <h2 style="margin-top:4px">From your laptop</h2>
+    <div id="gifts"></div>
+  </div>
+
+  <h2 style="margin-top:8px">Send to laptop</h2>
   <button class="send" id="pick">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-    Send to laptop
+    Photos &amp; files
   </button>
   <input type="file" id="file" multiple>
-  <div class="hint">Photos, videos, PDFs, anything. They land in the notch pocket and in Downloads › From iPhone.</div>
+  <div class="compose">
+    <textarea id="text" rows="1" placeholder="Type or paste a link or text…"></textarea>
+    <button class="btn primary" id="sendText">Send</button>
+  </div>
+  <div class="hint">Files land in the notch pocket. Links and text go straight to the laptop's clipboard.</div>
 
-  <div id="uploads" class="list" style="display:none"></div>
+  <div id="uploads" class="list" style="display:none; margin-top:12px"></div>
 
   <h2>In your notch pocket</h2>
   <div id="pocket" class="list"><div class="empty">Loading…</div></div>
 
-  <footer>Tip: tap Share › Add to Home Screen for one-tap sending.<br>Works while your phone and laptop are on the same Wi-Fi.</footer>
+  <footer>Tip: tap Share › Add to Home Screen for one-tap sending.<br>Keep this page open to receive from your laptop. Same Wi‑Fi only.</footer>
 </main>
 <script>
   var base = location.pathname.replace(/\/?$/, '/');
-  var pick = document.getElementById('pick'), input = document.getElementById('file');
-  var uploads = document.getElementById('uploads'), pocket = document.getElementById('pocket'), mochi = document.getElementById('mochi');
+  var $ = function (id) { return document.getElementById(id); };
+  var pick = $('pick'), input = $('file'), uploads = $('uploads'), pocket = $('pocket'), mochi = $('mochi');
+  var giftKey = 'notchLastGift_{{BOOT}}';
+  var lastGift = parseInt(localStorage.getItem(giftKey) || '0', 10), firstPoll = true;
+
+  function bounce() { mochi.classList.remove('bounce'); void mochi.offsetWidth; mochi.classList.add('bounce'); }
+  function fmt(n) { if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(0) + ' KB'; if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB'; return (n / 1073741824).toFixed(2) + ' GB'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function setStatus(t) { $('status').textContent = t; }
+
+  // ---------- phone -> laptop: files ----------
   pick.onclick = function () { input.click(); };
   input.onchange = function () { var files = Array.prototype.slice.call(input.files); input.value = ''; sendAll(files); };
-
-  function fmt(n) { if (n < 1024) return n + ' B'; if (n < 1048576) return (n / 1024).toFixed(0) + ' KB'; if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB'; return (n / 1073741824).toFixed(2) + ' GB'; }
-  function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-
   function sendAll(files) {
     if (!files.length) return;
     uploads.style.display = '';
     var rows = files.map(function (f) {
       var row = document.createElement('div'); row.className = 'row';
-      row.innerHTML = '<div style="flex:1;min-width:0"><div class="name">' + esc(f.name) + '</div><div class="bar"><i></i></div></div><div class="meta">' + fmt(f.size) + '</div>';
+      row.innerHTML = '<div class="grow"><div class="name">' + esc(f.name) + '</div><div class="bar"><i></i></div></div><div class="meta">' + fmt(f.size) + '</div>';
       uploads.insertBefore(row, uploads.firstChild); return row;
     });
     var i = 0;
     (function next() {
-      if (i >= files.length) { refresh(); return; }
+      if (i >= files.length) { refreshPocket(); return; }
       var f = files[i], row = rows[i]; i++;
       var xhr = new XMLHttpRequest();
       xhr.open('POST', base + 'upload?name=' + encodeURIComponent(f.name));
       xhr.upload.onprogress = function (e) { if (e.lengthComputable) row.querySelector('i').style.width = (e.loaded / e.total * 100) + '%'; };
-      xhr.onload = function () {
-        var ok = xhr.status === 200;
-        row.querySelector('.meta').outerHTML = ok ? '<div class="ok">Sent ✓</div>' : '<div class="err">Failed</div>';
-        if (ok) { mochi.classList.remove('bounce'); void mochi.offsetWidth; mochi.classList.add('bounce'); }
-        next();
-      };
+      xhr.onload = function () { var ok = xhr.status === 200; row.querySelector('.meta').outerHTML = ok ? '<div class="ok">Delivered ✓</div>' : '<div class="err">Failed</div>'; if (ok) bounce(); next(); };
       xhr.onerror = function () { row.querySelector('.meta').outerHTML = '<div class="err">Can\'t reach laptop</div>'; next(); };
       xhr.send(f);
     })();
   }
 
-  function refresh() {
+  // ---------- phone -> laptop: text & links ----------
+  var ta = $('text');
+  ta.addEventListener('input', function () { ta.style.height = 'auto'; ta.style.height = Math.min(140, ta.scrollHeight) + 'px'; });
+  $('sendText').onclick = function () {
+    var t = ta.value.trim(); if (!t) { ta.focus(); return; }
+    var b = $('sendText'); b.textContent = '…';
+    fetch(base + 'text', { method: 'POST', body: t, headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+      .then(function (r) { if (!r.ok) throw 0; ta.value = ''; ta.style.height = ''; b.textContent = 'Sent ✓'; bounce(); setTimeout(function () { b.textContent = 'Send'; }, 1600); })
+      .catch(function () { b.textContent = 'Retry'; });
+  };
+
+  // ---------- laptop -> phone: deliveries ----------
+  function copy(text, btn) {
+    var t = document.createElement('textarea'); t.value = text; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select(); t.setSelectionRange(0, text.length);
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(t);
+    btn.textContent = ok ? 'Copied ✓' : 'Long-press to copy';
+    setTimeout(function () { btn.textContent = 'Copy'; }, 1800);
+  }
+  function giftHtml(g) {
+    var h = '<div class="top"><div class="grow"><div class="tag">' + (g.kind === 'file' ? (g.image ? 'Photo' : 'File') : g.kind === 'link' ? 'Link' : 'Text') + ' from your laptop</div>';
+    if (g.kind === 'file') {
+      h += '<div class="name">' + esc(g.name) + '</div><div class="meta">' + fmt(g.size) + '</div></div></div>';
+      if (g.image) h += '<img src="' + base + 'out?id=' + g.id + '&inline=1" alt="">';
+      h += '<div class="acts"><a class="btn primary" href="' + base + 'out?id=' + g.id + '" download>Save</a>' + (g.image ? '<span class="meta" style="align-self:center">or long-press the photo › Save to Photos</span>' : '') + '</div>';
+    } else {
+      h += '</div></div><div class="txt">' + esc(g.text) + '</div><div class="acts">' +
+           (g.kind === 'link' ? '<a class="btn primary" href="' + esc(g.text) + '" target="_blank" rel="noopener">Open</a>' : '') +
+           '<button class="btn" data-copy="' + g.id + '">Copy</button></div>';
+    }
+    return h;
+  }
+  var giftTexts = {};
+  function showBanner(g) {
+    $('bannerTitle').textContent = g.kind === 'file' ? 'Mochi brought you a ' + (g.image ? 'photo' : 'file') + '!' : 'Mochi brought you a ' + (g.kind === 'link' ? 'link' : 'note') + '!';
+    $('bannerText').textContent = g.kind === 'file' ? g.name : g.text;
+    var b = $('banner'); b.classList.add('show');
+    clearTimeout(showBanner.t); showBanner.t = setTimeout(function () { b.classList.remove('show'); }, 3800);
+    bounce();
+  }
+  function pollInbox() {
+    fetch(base + 'inbox?since=' + (firstPoll ? 0 : lastGift), { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (list) {
+      setStatus('Connected to {{HOST}}');
+      var fresh = [];
+      list.forEach(function (g) {
+        if ($('gift' + g.id)) return;
+        var el = document.createElement('div'); el.className = 'gift'; el.id = 'gift' + g.id; el.innerHTML = giftHtml(g);
+        if (g.text) giftTexts[g.id] = g.text;
+        if (g.id > lastGift) { el.classList.add('new'); fresh.push(g); }
+        $('gifts').insertBefore(el, $('gifts').firstChild);
+        $('giftsWrap').style.display = '';
+      });
+      list.forEach(function (g) { if (g.id > lastGift) lastGift = g.id; });
+      try { localStorage.setItem(giftKey, String(lastGift)); } catch (e) {}
+      if (fresh.length) showBanner(fresh[fresh.length - 1]);
+      firstPoll = false;
+    }).catch(function () { setStatus('Can\'t reach the laptop. Same Wi-Fi?'); });
+  }
+  document.addEventListener('click', function (e) {
+    var id = e.target.getAttribute && e.target.getAttribute('data-copy');
+    if (id) copy(giftTexts[id] || '', e.target);
+  });
+
+  // ---------- what's in the notch pocket ----------
+  function refreshPocket() {
     fetch(base + 'files', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (list) {
-      document.getElementById('status').textContent = 'Connected to {{HOST}}';
       if (!list.length) { pocket.innerHTML = '<div class="empty">Nothing in the pocket yet. Drag files onto the notch on your laptop and they show up here.</div>'; return; }
       pocket.innerHTML = list.map(function (f) {
-        return '<div class="row"><div style="flex:1;min-width:0"><div class="name">' + esc(f.name) + '</div><div class="meta">' + fmt(f.size) + '</div></div>' +
-               '<a class="save" href="' + base + 'file?i=' + f.i + '" download>Save</a></div>';
+        return '<div class="row"><div class="grow"><div class="name">' + esc(f.name) + '</div><div class="meta">' + fmt(f.size) + '</div></div>' +
+               '<a class="btn" href="' + base + 'file?i=' + f.i + '" download>Save</a></div>';
       }).join('');
-    }).catch(function () { document.getElementById('status').textContent = 'Can\'t reach the laptop. Same Wi-Fi?'; });
+    }).catch(function () {});
   }
-  refresh();
-  setInterval(function () { if (document.visibilityState === 'visible') refresh(); }, 4000);
+
+  pollInbox(); refreshPocket();
+  setInterval(function () { if (document.visibilityState === 'visible') pollInbox(); }, 2000);
+  setInterval(function () { if (document.visibilityState === 'visible') refreshPocket(); }, 6000);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') pollInbox(); });
 </script>
 </body>
 </html>
