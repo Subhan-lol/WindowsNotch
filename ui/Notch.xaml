@@ -122,6 +122,7 @@
               <!-- header -->
               <Grid VerticalAlignment="Center" Margin="0,6,0,0">
                 <StackPanel x:Name="Tabs" Orientation="Horizontal">
+                  <RadioButton Style="{StaticResource Tab}" Tag="ask" Content="&#xE721;" ToolTip="Ask Mochi (Ctrl+Alt+Space)"/>
                   <RadioButton Style="{StaticResource Tab}" Tag="home" Content="&#xE8D6;" ToolTip="Now playing" IsChecked="True"/>
                   <RadioButton Style="{StaticResource Tab}" Tag="shelf" Content="&#xE8B7;" ToolTip="File pocket"/>
                   <RadioButton Style="{StaticResource Tab}" Tag="clip" Content="&#xE77F;" ToolTip="Clipboard history"/>
@@ -137,6 +138,46 @@
               </Grid>
 
               <Grid Grid.Row="1">
+                <!-- ===== Ask Mochi ===== -->
+                <Grid x:Name="PanelAsk" Visibility="Collapsed">
+                  <Grid.RowDefinitions><RowDefinition Height="44"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                  <Border x:Name="AskFrame" CornerRadius="14" Background="#16FFFFFF" BorderBrush="#26FFFFFF" BorderThickness="1"/>
+                  <Grid Margin="14,0,6,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBlock x:Name="AskHint" Text="Ask Mochi… play lofi, find my resume, note: buy milk" FontSize="14" Foreground="{StaticResource FgFaint}" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis"/>
+                    <TextBox x:Name="AskBox" Style="{StaticResource AskBox}" VerticalAlignment="Center"/>
+                    <Grid Grid.Column="1" Width="34" Height="34">
+                      <Ellipse x:Name="AskMicLevel" Fill="{DynamicResource Accent}" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform><ScaleTransform x:Name="AskMicScale" ScaleX="0.6" ScaleY="0.6"/></Ellipse.RenderTransform>
+                      </Ellipse>
+                      <Button x:Name="AskMic" Style="{StaticResource IconButton}" Content="&#xE720;" ToolTip="Talk to Mochi (press Ctrl+Alt+Space twice)"/>
+                    </Grid>
+                    <Button x:Name="AskGo" Grid.Column="2" Style="{StaticResource IconButton}" Content="&#xE724;" ToolTip="Go (Enter)"/>
+                  </Grid>
+                  <WrapPanel x:Name="AskChips" Grid.Row="1" Margin="0,8,0,0">
+                    <Button Style="{StaticResource Pill}" Tag="play lofi beats" Content="play lofi beats" Padding="9,4" FontSize="11"/>
+                    <Button Style="{StaticResource Pill}" Tag="find my resume" Content="find my resume" Padding="9,4" FontSize="11"/>
+                    <Button Style="{StaticResource Pill}" Tag="note: " Content="note: …" Padding="9,4" FontSize="11"/>
+                    <Button Style="{StaticResource Pill}" Tag="timer 10 min" Content="timer 10 min" Padding="9,4" FontSize="11"/>
+                    <Button Style="{StaticResource Pill}" Tag="open calculator" Content="open calculator" Padding="9,4" FontSize="11"/>
+                    <Button Style="{StaticResource Pill}" Tag="claude: what's taking space in my Downloads?" Content="ask Claude anything" Padding="9,4" FontSize="11"/>
+                  </WrapPanel>
+                  <ScrollViewer x:Name="AskScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,2,0,0" Focusable="False">
+                    <StackPanel x:Name="AskOut" Margin="2,0,8,0"/>
+                  </ScrollViewer>
+                  <Grid x:Name="AskApproval" Grid.Row="3" Visibility="Collapsed" Margin="0,6,0,0">
+                    <Border CornerRadius="12" Background="#2BFFC94D" BorderBrush="#66FFC94D" BorderThickness="1"/>
+                    <Grid Margin="12,7,8,7">
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <TextBlock x:Name="AskApprovalText" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center" MaxHeight="48" TextTrimming="CharacterEllipsis"/>
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+                        <Button x:Name="AskAllow" Style="{StaticResource Pill}" Content="Allow" Background="#FFC94D" Foreground="#1A1300" FontWeight="SemiBold" Margin="0,0,6,0"/>
+                        <Button x:Name="AskDeny" Style="{StaticResource Pill}" Content="Don't" Margin="0"/>
+                      </StackPanel>
+                    </Grid>
+                  </Grid>
+                </Grid>
+
                 <!-- ===== Now playing ===== -->
                 <Grid x:Name="PanelHome">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="132"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -367,7 +408,7 @@
                   </ScrollViewer>
                   <Grid Grid.Row="1" Margin="0,4,0,0">
                     <TextBlock FontSize="10.5" Foreground="{StaticResource FgFaint}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,90,0"
-                               Text="Ctrl+Alt+Space · scroll = volume · middle-click = play/pause"/>
+                               Text="Ctrl+Alt+Space: ask Mochi (twice to talk) · scroll = volume · middle-click = play/pause"/>
                     <Button x:Name="QuitBtn" Style="{StaticResource Pill}" Content="Quit Notch" HorizontalAlignment="Right" Margin="0"/>
                   </Grid>
                 </Grid>

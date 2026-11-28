@@ -13,7 +13,7 @@ if (-not (Test-Path $ico)) { & (Join-Path $root 'make-icon.ps1') -Out $ico }
 $refs = @(
   "$wpf\PresentationCore.dll", "$wpf\PresentationFramework.dll", "$wpf\WindowsBase.dll",
   "$fw\System.Xaml.dll", "$fw\System.dll", "$fw\System.Core.dll", "$fw\System.Xml.dll",
-  "$fw\System.Drawing.dll", "$fw\System.Windows.Forms.dll",
+  "$fw\System.Drawing.dll", "$fw\System.Windows.Forms.dll", "$wpf\System.Speech.dll", "$fw\System.Web.Extensions.dll", "$fw\System.Data.dll",
   "$fw\System.Runtime.dll", "$fw\System.Runtime.InteropServices.WindowsRuntime.dll",
   "$wm\Windows.Foundation.winmd", "$wm\Windows.Media.winmd", "$wm\Windows.Storage.winmd"
 ) | ForEach-Object { "/r:$_" }

@@ -30,6 +30,20 @@ Build it once (see Building below), then run `bin\NotchIsland.exe`. It sits at t
 - Everything in your pocket is also listed on the phone page with a **Save** button.
 - Tip: in Safari, tap Share › **Add to Home Screen** for a one-tap Mochi icon.
 
+**Ask Mochi (type or talk)**
+- Press **Ctrl+Alt+Space** anywhere to open the Ask bar. Press it again, or tap the mic, to **talk** instead: Mochi shows your words as you speak and goes when you pause. Win+Alt+Space starts listening straight away (if Windows lets the app use it).
+- Instant, no AI needed:
+  - **Music:** "play lofi beats", "pause", "next song", "volume 40", "mute".
+  - **Notes:** "note: buy milk", or "new note grocery list…" (saved to Documents › Mochi Notes and put in your pocket).
+  - **Files and apps:** "find my resume" (uses Windows Search), "open calculator", "open youtube.com".
+  - **Timers:** "timer 10 min", "remind me in 20 minutes to stretch".
+  - **Quick helpers:** "what's 18% of 240" (the answer is copied), "google …", "send … to my phone", "copy …", "lock my laptop".
+- **Claude in the background:** anything else goes to Claude Code (`claude -p`). Mochi shows "on it…" in the notch and tells you when it's done.
+  - "play <song>" asks Claude to find the exact Spotify track.
+  - Claude can read, search and look things up on its own. Anything that would *change* your computer, like running a command or writing a file, shows an **Allow / Don't** prompt first.
+- **"terminal: …"** opens Claude in Windows Terminal so you can watch it work.
+- Needs the Claude Code CLI (signed in) for the Claude parts. Each Claude request uses your Claude plan like any other.
+
 **More**
 - **Clipboard history:** the last 25 things you copied. Click one to copy it again, or pin the ones you want to keep. It stays in memory only and skips anything password managers mark as private.
 - **Focus timer:** presets from 1 to 45 minutes. A countdown ring shows in the collapsed notch, and Mochi celebrates when time's up.

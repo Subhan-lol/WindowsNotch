@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -44,6 +45,55 @@ namespace NotchIsland
                     await Shot("19-phone-panel", 900);
                     E<Grid>("PhonePanel").Visibility = Visibility.Collapsed;
                     await Shot("20-shelf-toolbar", 300);
+                    Application.Current.Shutdown(); return;
+                }
+                if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "ask")
+                {
+                    shelf.ReadOnly = true;
+                    var alog = new System.Text.StringBuilder();
+                    string[] phrases = {
+                        "play lofi beats", "Hey Mochi, play Blinding Lights by The Weeknd on Spotify", "pause", "play", "next song", "go back",
+                        "volume 40", "turn it up", "mute", "note: buy milk", "Can you take a note that the meeting moved to 4", "new note grocery list eggs bread",
+                        "find my resume", "where is my tax return pdf", "search my files for invoice", "open calculator", "open youtube.com", "launch spotify",
+                        "timer 10 min", "set a timer for twenty minutes", "remind me in 20 minutes to stretch", "what's 18% of 240", "calculate 12*(3+4)",
+                        "google best ramen near me", "send hello there to my phone", "send clipboard to my phone", "copy hello world", "lock my laptop",
+                        "claude: what's taking space in my Downloads folder?", "terminal: fix the bug in my project", "how many days until christmas?", "help" };
+                    foreach (var ph in phrases) alog.AppendLine(ph.PadRight(62) + " => " + Parse(ph));
+                    var hits = await FileFinder.Find("notch", 5);
+                    alog.AppendLine();
+                    alog.AppendLine("file search 'notch': " + hits.Count + " hits" + (hits.Count > 0 ? ", e.g. " + System.IO.Path.GetFileName(hits[0]) : ""));
+                    alog.AppendLine("calc '18% of 240' = " + Launcher.Calc("18% of 240") + ", '12*(3+4)' = " + Launcher.Calc("12*(3+4)") + ", '7 / 0' = " + (Launcher.Calc("7 / 0") ?? "null"));
+                    alog.AppendLine("claude available: " + ClaudeRunner.Available + ", voice supported: " + Voice.Supported);
+                    File.WriteAllText(System.IO.Path.Combine(SnapshotDir, "ask.txt"), alog.ToString());
+                    // what the bar looks like
+                    AskDryRun = true;
+                    Expand("ask");
+                    AskClear();
+                    AskLine("“find my resume”", true);
+                    AskLine("Found 3 files. Click to open, or put one in your pocket:", false);
+                    AskRow("Resume 2026.pdf", @"C:\Users\you\Documents\Jobs", "\uE8A5", null, "\uE8B7", "Put in pocket", () => { });
+                    AskRow("resume-old.docx", @"C:\Users\you\Documents", "\uE8A5", null, "\uE8B7", "Put in pocket", () => { });
+                    await Shot("29-ask-panel", 700);
+                    AskClear();
+                    E<TextBlock>("AskApprovalText").Text = "Claude wants to run: Remove-Item ~/Downloads/*.tmp. OK?";
+                    E<Grid>("AskApproval").Visibility = Visibility.Visible;
+                    AskLine("“claude clean the temp files out of my Downloads”", true);
+                    await Shot("30-ask-approval", 400);
+                    E<Grid>("AskApproval").Visibility = Visibility.Collapsed;
+                    AskClear();
+                    ListeningUI(true); askBox.Text = "play some jazz on spot";
+                    await Shot("31-ask-listening", 500);
+                    ListeningUI(false);
+                    if (Environment.GetEnvironmentVariable("NOTCH_ASK_CLAUDE") == "1")
+                    {
+                        AskDryRun = false;
+                        AskClear();
+                        AskClaude("In one short sentence, what folder is my current directory?", null, null);
+                        for (int i = 0; i < 120 && askBusy; i++) await Task.Delay(500);
+                        var answer = string.Join(" | ", askOut.Children.OfType<FrameworkElement>().Select(fe => fe is TextBox ? ((TextBox)fe).Text : fe is TextBlock ? ((TextBlock)fe).Text : ""));
+                        File.AppendAllText(System.IO.Path.Combine(SnapshotDir, "ask.txt"), "\nclaude round trip: " + answer + "\n");
+                        await Shot("32-ask-claude-answer", 300);
+                    }
                     Application.Current.Shutdown(); return;
                 }
                 if (Environment.GetEnvironmentVariable("NOTCH_SNAP_ONLY") == "delivery")

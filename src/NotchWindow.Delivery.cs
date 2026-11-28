@@ -20,7 +20,7 @@ namespace NotchIsland
     public partial class NotchWindow
     {
         class Delivery { public int Id; public string Name; public long Total = -1, Done; public string Path; public bool Finished, Ok; }
-        enum CardKind { InFile, InText, Out }
+        enum CardKind { InFile, InText, Out, Ask }
 
         const string GlyphPocket = "", GlyphPhone = "", GlyphClipboard = "", GlyphDoc = "", GlyphLink = "";
 
@@ -43,6 +43,7 @@ namespace NotchIsland
             {
                 e.Handled = true;
                 if (cardKind == CardKind.InText && cardLink != null) { OpenLink(cardLink); return; }
+                if (cardKind == CardKind.Ask) { OpenAsk(false); return; }
                 Expand(cardKind == CardKind.InText ? "clip" : "shelf");
             };
             phone.UploadStarted += OnUploadStarted;

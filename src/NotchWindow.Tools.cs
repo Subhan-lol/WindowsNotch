@@ -29,6 +29,7 @@ namespace NotchIsland
         TimeSpan timerTotal = TimeSpan.FromMinutes(25), timerLeft = TimeSpan.FromMinutes(25);
         DateTime timerEnd;
         DispatcherTimer timerTick;
+        string timerLabel; // "remind me in 20 min to stretch"
 
         // notes / clock / battery
         DispatcherTimer notesSave, clockTimer, batteryPoll;
@@ -268,13 +269,17 @@ namespace NotchIsland
             timerLeft = TimeSpan.Zero;
             UpdateTimerUI();
             if (Settings.Get("Sounds")) { try { SystemSounds.Asterisk.Play(); } catch { } }
+            string label = timerLabel;
+            timerLabel = null;
+            if (label != null) App.Notify("⏰ Reminder from Mochi", label, null);
             if (IsVisible)
             {
                 Expand("timer");
                 React(m => m.Celebrate());
-                moodText.Text = "time's up! great work ✦";
-                ScheduleCollapse(7000);
+                moodText.Text = label != null ? "⏰ " + label : "time's up! great work ✦";
+                ScheduleCollapse(label != null ? 12000 : 7000);
             }
+            else if (label == null) App.Notify("Time's up!", "Mochi's timer finished", null);
             UpdateMood();
         }
 
@@ -336,7 +341,7 @@ namespace NotchIsland
         {
             if (!expanded) { clockTimer.Stop(); return; }
             if (!clockTimer.IsEnabled) clockTimer.Start();
-            E<TextBlock>("ClockText").Text = DateTime.Now.ToString("ddd d MMM  ·  h:mm tt");
+            E<TextBlock>("ClockText").Text = DateTime.Now.ToString("ddd  h:mm tt");
         }
 
         void RefreshBattery(bool fromEvent)

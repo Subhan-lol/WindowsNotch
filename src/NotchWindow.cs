@@ -86,7 +86,7 @@ namespace NotchIsland
             {
                 toastTimer.Stop();
                 // the delivery card stays while files are still coming in, or while you're looking at it
-                if (toast == ToastKind.Delivery && (hovering || ActiveCount > 0)) { toastTimer.Interval = TimeSpan.FromMilliseconds(1500); toastTimer.Start(); return; }
+                if (toast == ToastKind.Delivery && (hovering || ActiveCount > 0 || (cardKind == CardKind.Ask && (askBusy || askNeedsOk)))) { toastTimer.Interval = TimeSpan.FromMilliseconds(1500); toastTimer.Start(); return; }
                 toast = ToastKind.None; ApplyCompact();
             });
             fsTimer = Timer(1500, (s, e) => CheckFullscreen());
@@ -99,10 +99,17 @@ namespace NotchIsland
             WireTools();
             WireBuddy();
             WirePhone();
+            WireAsk();
 
             Settings.Changed += OnSettingChanged;
             Deactivated += (s, e) => { if (pinnedOpen) { pinnedOpen = false; SetNoActivate(true); ScheduleCollapse(250); } };
-            KeyDown += (s, e) => { if (e.Key == Key.Escape) { pinnedOpen = false; Collapse(); } };
+            KeyDown += (s, e) =>
+            {
+                if (e.Key != Key.Escape) return;
+                var prev = askPrevWindow;
+                pinnedOpen = false; Collapse();
+                if (prev != IntPtr.Zero && tab == "ask") Native.SetForegroundWindow(prev);
+            };
         }
 
         T E<T>(string name) where T : class
@@ -130,6 +137,7 @@ namespace NotchIsland
             Native.SetExStyle(hwnd, ex);
             HwndSource.FromHwnd(hwnd).AddHook(WndProc);
             Native.RegisterHotKey(hwnd, HotkeyId, Native.MOD_CONTROL | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x20);
+            Native.RegisterHotKey(hwnd, HotkeyTalk, Native.MOD_WIN | Native.MOD_ALT | Native.MOD_NOREPEAT, 0x20); // talk straight away (if Windows lets us)
             Native.AddClipboardFormatListener(hwnd);
             PlaceWindow();
         }
@@ -157,7 +165,8 @@ namespace NotchIsland
 
         protected override void OnClosed(EventArgs e)
         {
-            try { Native.UnregisterHotKey(hwnd, HotkeyId); Native.RemoveClipboardFormatListener(hwnd); } catch { }
+            try { Native.UnregisterHotKey(hwnd, HotkeyId); Native.UnregisterHotKey(hwnd, HotkeyTalk); Native.RemoveClipboardFormatListener(hwnd); } catch { }
+            if (voice != null) voice.Dispose();
             audio.Stop();
             SaveNotesNow();
             base.OnClosed(e);
@@ -169,6 +178,7 @@ namespace NotchIsland
             {
                 case Native.WM_HOTKEY:
                     if (w.ToInt32() == HotkeyId) ToggleFromHotkey();
+                    else if (w.ToInt32() == HotkeyTalk) OpenAsk(true);
                     break;
                 case Native.WM_CLIPBOARDUPDATE:
                     OnClipboardUpdate();
@@ -300,14 +310,6 @@ namespace NotchIsland
             SizeTo(w, h, r, Anim.OutBack, 320);
         }
 
-        void ToggleFromHotkey()
-        {
-            if (expanded) { pinnedOpen = false; Collapse(); return; }
-            if (!IsVisible) Show();
-            Expand(null);
-            TakeFocus();
-        }
-
         public void OpenFromTray()
         {
             if (userHidden) SetUserHidden(false);
@@ -343,7 +345,8 @@ namespace NotchIsland
         void Expand(string tabName)
         {
             Dbg("expand " + tabName);
-            if (!expanded && (toast == ToastKind.Delivery || newFromPhone > 0) && tabName == null) tabName = "shelf";
+            if (!expanded && (toast == ToastKind.Delivery || newFromPhone > 0) && tabName == null)
+                tabName = toast == ToastKind.Delivery && cardKind == CardKind.Ask ? "ask" : toast == ToastKind.Delivery && cardKind == CardKind.InText ? "clip" : "shelf";
             if (!expanded && toast == ToastKind.Delivery && deliveryCard != null)
             {
                 deliveryCard.Visibility = Visibility.Collapsed; deliveryCard.Opacity = 0;
@@ -397,6 +400,7 @@ namespace NotchIsland
             ApplyCompact(Anim.OutBackSoft, 380);
             OnExpandedChanged();
             ScheduleTrim();
+            if (askBusy) ShowAskWorking(); // keep showing that Mochi's working on your request
         }
 
         void OnExpandedChanged()
@@ -416,7 +420,7 @@ namespace NotchIsland
                 var rb = c as RadioButton;
                 if (rb != null && (string)rb.Tag == name && rb.IsChecked != true) rb.IsChecked = true;
             }
-            string[] panels = { "home", "PanelHome", "shelf", "PanelShelf", "clip", "PanelClip", "timer", "PanelTimer", "notes", "PanelNotes", "settings", "PanelSettings" };
+            string[] panels = { "ask", "PanelAsk", "home", "PanelHome", "shelf", "PanelShelf", "clip", "PanelClip", "timer", "PanelTimer", "notes", "PanelNotes", "settings", "PanelSettings" };
             for (int i = 0; i < panels.Length; i += 2)
                 E<Grid>(panels[i + 1]).Visibility = panels[i] == name ? Visibility.Visible : Visibility.Collapsed;
             if (name == "clip") RefreshClipAges();
